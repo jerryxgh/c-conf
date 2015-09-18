@@ -163,11 +163,12 @@ str_trim_str_list(char *list, char delimiter);
  *   arr - a pointer to array of strings
  * @param
  *   entry - string to add
-
- * @comments
- *   allocates memory, calls assert() if that fails
+ *
+ * @return
+ *   SUCCEED if succeed
+ *   FAIL if fail
  */
-void
+int
 str_strarr_add(char ***arr, const char *entry);
 
 /**
@@ -176,10 +177,11 @@ str_strarr_add(char ***arr, const char *entry);
  * @param
  *   arr - a pointer to array of strings
  *
- * @comments
- *   allocates memory, calls assert() if that fails
+ * @return
+ *   SUCCEED if succeed
+ *   FAIL if fail
  */
-void
+int
 str_strarr_init(char ***arr);
 
 #endif /* STR */

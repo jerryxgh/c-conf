@@ -210,10 +210,10 @@ int str_is_utf8(const char *text)
 
         /* overlong sequence */
         if (0xc0 == (utf8[0] & 0xfe) ||
-                (0xe0 == utf8[0] && 0x00 == (utf8[1] & 0x20)) ||
-                (0xf0 == utf8[0] && 0x00 == (utf8[1] & 0x30)) ||
-                (0xf8 == utf8[0] && 0x00 == (utf8[1] & 0x38)) ||
-                (0xfc == utf8[0] && 0x00 == (utf8[1] & 0x3c))) {
+            (0xe0 == utf8[0] && 0x00 == (utf8[1] & 0x20)) ||
+            (0xf0 == utf8[0] && 0x00 == (utf8[1] & 0x30)) ||
+            (0xf8 == utf8[0] && 0x00 == (utf8[1] & 0x38)) ||
+            (0xfc == utf8[0] && 0x00 == (utf8[1] & 0x3c))) {
             return FAIL;
         }
 
@@ -303,10 +303,10 @@ int is_uint_n_range(const char *str, size_t n, void *value, size_t size,
 
     if (NULL != value) {
         /* On little endian architecture the output value will be stored
-          starting from the first bytes of 'value' buffer while on big endian
-          architecture it will be stored starting from the last bytes. We handle
-          it by storing the offset in the most significant byte of short value
-          and then use the first byte as source offset.  */
+           starting from the first bytes of 'value' buffer while on big endian
+           architecture it will be stored starting from the last bytes. We handle
+           it by storing the offset in the most significant byte of short value
+           and then use the first byte as source offset.  */
 
         value_offset = (unsigned short)((sizeof(uint64_t) - size) << 8);
 
@@ -338,26 +338,26 @@ suffix2factor(char c)
 {
     switch (c)
     {
-        case 'K':
-            return STR_KIBIBYTE;
-        case 'M':
-            return STR_MEBIBYTE;
-        case 'G':
-            return STR_GIBIBYTE;
-        case 'T':
-            return STR_TEBIBYTE;
-        case 's':
-            return 1;
-        case 'm':
-            return SEC_PER_MIN;
-        case 'h':
-            return SEC_PER_HOUR;
-        case 'd':
-            return SEC_PER_DAY;
-        case 'w':
-            return SEC_PER_WEEK;
-        default:
-            return 1;
+    case 'K':
+        return STR_KIBIBYTE;
+    case 'M':
+        return STR_MEBIBYTE;
+    case 'G':
+        return STR_GIBIBYTE;
+    case 'T':
+        return STR_TEBIBYTE;
+    case 's':
+        return 1;
+    case 'm':
+        return SEC_PER_MIN;
+    case 'h':
+        return SEC_PER_HOUR;
+    case 'd':
+        return SEC_PER_DAY;
+    case 'w':
+        return SEC_PER_WEEK;
+    default:
+        return 1;
     }
 }
 
@@ -459,18 +459,7 @@ str_trim_str_list(char *list, char delimiter)
     *out = '\0';
 }
 
-/**
- * Add a string to dynamic string array
- *
- * @param
- *   arr - a pointer to array of strings
- * @param
- *   entry - string to add
-
- * @comments
- *   allocates memory, calls assert() if that fails
- */
-void
+int
 str_strarr_add(char ***arr, const char *entry)
 {
     int i;
@@ -480,22 +469,29 @@ str_strarr_add(char ***arr, const char *entry)
 
     *arr = realloc(*arr, sizeof(char **) * (i + 2));
 
+    if (NULL == *arr) {
+        return FAIL;
+    }
+
     (*arr)[i] = str_strdup(entry);
+    if (NULL == (*arr)[i]) {
+        return FAIL;
+    }
+
     (*arr)[++i] = NULL;
+
+    return SUCCEED;
 }
 
-/**
- * Initialize dynamic string array
- *
- * @param
- *   arr - a pointer to array of strings
- *
- * @comments
- *   allocates memory, calls assert() if that fails
- */
-void
+int
 str_strarr_init(char ***arr)
 {
     *arr = malloc(sizeof(char **));
+    if (NULL == *arr) {
+        return FAIL;
+    }
+
     **arr = NULL;
+
+    return SUCCEED;
 }

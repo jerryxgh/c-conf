@@ -110,13 +110,17 @@ parse_glob(const char *glob, char **path, char **pattern)
 
     if (NULL == (p = strchr(glob, '*'))) {
         *path = str_strdup(glob);
+        if (NULL == *path) {
+            return FAIL;
+        }
         *pattern = NULL;
 
         goto trim;
     }
 
     if (NULL != strchr(p + 1, PATH_SEPARATOR)) {
-        LOG_ERR("%s: glob pattern should be the last component of the path\n", glob);
+        LOG_ERR("%s: glob pattern should be the last component of the path\n",
+                glob);
         return FAIL;
     }
 
@@ -132,13 +136,25 @@ parse_glob(const char *glob, char **path, char **pattern)
         ;
 
     *path = str_strdup(glob);
+    if (NULL == *path) {
+        return FAIL;
+    }
     (*path)[p - glob] = '\0';
 
     *pattern = str_strdup(p + 1);
+    if (NULL == *pattern) {
+        free(*path);
+        return FAIL;
+    }
 
 trim:
-    if (0 != str_rtrim(*path, "/") && NULL == *pattern)
+    if (0 != str_rtrim(*path, "/") && NULL == *pattern) {
         *pattern = str_strdup("*");   /* make sure path is a directory */
+        if (NULL == *pattern) {
+            free(*path);
+            return FAIL;
+        }
+    }
 
     if ('\0' == (*path)[0] && '/' == glob[0]) {
         /* retain forward slash for "/" */
@@ -336,36 +352,41 @@ __parse_cfg_file(const char *cfg_file, struct cfg_line *cfg, int level,
                 param_valid = 1;
 
                 switch (cfg[i].type) {
-                    case TYPE_INT:
-                        if (FAIL == str2uint64(value, "KMGT", &var))
-                            goto incorrect_config;
+                case TYPE_INT:
+                    if (FAIL == str2uint64(value, "KMGT", &var))
+                        goto incorrect_config;
 
-                        if (cfg[i].min > var ||
-                            (0 != cfg[i].max && var > cfg[i].max))
-                            goto incorrect_config;
+                    if (cfg[i].min > var ||
+                        (0 != cfg[i].max && var > cfg[i].max))
+                        goto incorrect_config;
 
-                        *((int *)cfg[i].variable) = (int)var;
-                        break;
-                    case TYPE_STRING_LIST:
-                        str_trim_str_list(value, ',');
-                        /* break; is not missing here */
-                    case TYPE_STRING:
-                        *((char **)cfg[i].variable) = str_strdup(value);
-                        break;
-                    case TYPE_MULTISTRING:
-                        str_strarr_add(cfg[i].variable, value);
-                        break;
-                    case TYPE_UINT64:
-                        if (FAIL == str2uint64(value, "KMGT", &var))
-                            goto incorrect_config;
+                    *((int *)cfg[i].variable) = (int)var;
+                    break;
+                case TYPE_STRING_LIST:
+                    str_trim_str_list(value, ',');
+                    /* break; is not missing here */
+                case TYPE_STRING:
+                    *((char **)cfg[i].variable) = str_strdup(value);
+                    if (NULL == *((char **)cfg[i].variable)) {
+                        goto copy_str_error;
+                    }
+                    break;
+                case TYPE_MULTISTRING:
+                    if (SUCCEED != str_strarr_add(cfg[i].variable, value)) {
+                        goto copy_str_error;
+                    }
+                    break;
+                case TYPE_UINT64:
+                    if (FAIL == str2uint64(value, "KMGT", &var))
+                        goto incorrect_config;
 
-                        if (cfg[i].min > var || (0 != cfg[i].max && var > cfg[i].max))
-                            goto incorrect_config;
+                    if (cfg[i].min > var || (0 != cfg[i].max && var > cfg[i].max))
+                        goto incorrect_config;
 
-                        *((uint64_t *)cfg[i].variable) = var;
-                        break;
-                    default:
-                        break;
+                    *((uint64_t *)cfg[i].variable) = var;
+                    break;
+                default:
+                    break;
                 }
             }
 
@@ -385,17 +406,17 @@ __parse_cfg_file(const char *cfg_file, struct cfg_line *cfg, int level,
             continue;
 
         switch (cfg[i].type) {
-            case TYPE_INT:
-                if (0 == *((int *)cfg[i].variable))
-                    goto missing_mandatory;
-                break;
-            case TYPE_STRING:
-            case TYPE_STRING_LIST:
-                if (NULL == (*(char **)cfg[i].variable))
-                    goto missing_mandatory;
-                break;
-            default:
-                break;
+        case TYPE_INT:
+            if (0 == *((int *)cfg[i].variable))
+                goto missing_mandatory;
+            break;
+        case TYPE_STRING:
+        case TYPE_STRING_LIST:
+            if (NULL == (*(char **)cfg[i].variable))
+                goto missing_mandatory;
+            break;
+        default:
+            break;
         }
     }
 
@@ -406,24 +427,33 @@ cannot_open:
     goto error;
 non_utf8:
     fclose(file);
-    LOG_ERR("non-UTF-8 character at line %d (%s) in config file [%s]", lineno, line, cfg_file);
+    LOG_ERR("non-UTF-8 character at line %d (%s) in config file [%s]", lineno,
+            line, cfg_file);
+    goto error;
+copy_str_error:
+    fclose(file);
+    LOG_ERR("copying string failed at line [%s] in config file [%s], line %d",
+            line, cfg_file, lineno);
     goto error;
 non_key_value:
     fclose(file);
-    LOG_ERR("invalid entry [%s] (not following \"parameter=value\" notation) in config file [%s], line %d",
-            line, cfg_file, lineno);
+    LOG_ERR("invalid entry [%s] (not following \"parameter=value\" notation) "
+            "in config file [%s], line %d", line, cfg_file, lineno);
     goto error;
 incorrect_config:
     fclose(file);
-    LOG_ERR("wrong value of [%s] in config file [%s], line %d", cfg[i].parameter, cfg_file, lineno);
+    LOG_ERR("wrong value of [%s] in config file [%s], line %d",
+            cfg[i].parameter, cfg_file, lineno);
     goto error;
 unknown_parameter:
     fclose(file);
-    LOG_ERR("unknown parameter [%s] in config file [%s], line %d", parameter, cfg_file, lineno);
+    LOG_ERR("unknown parameter [%s] in config file [%s], line %d",
+            parameter, cfg_file, lineno);
     goto error;
 
 missing_mandatory:
-    LOG_ERR("missing mandatory parameter [%s] in config file [%s]", cfg[i].parameter, cfg_file);
+    LOG_ERR("missing mandatory parameter [%s] in config file [%s]",
+            cfg[i].parameter, cfg_file);
 error:
     return FAIL;
 }
