@@ -40,7 +40,7 @@
 #ifndef LOG_ERR
 #define LOG_ERR(f, arg...)                                              \
     do {                                                                \
-        fprintf(stderr, "["__FILE__"][%s:%d]: "f"\n",                  \
+        fprintf(stderr, "["__FILE__"][%s:%d]: "f"\n",                   \
                 __func__, __LINE__, ##arg);                             \
     } while (0)
 #endif

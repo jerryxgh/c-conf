@@ -36,6 +36,7 @@ load_config(int requirement)
 
     return parse_cfg_file(CONFIG_FILE, cfg, requirement, 1);
 }
+
 static void
 print_str(const char *key, const char *value)
 {
