@@ -42,10 +42,12 @@ endif()
 
 ###############################################################################
 # Enable unit tests if check is installed
+if (EXISTS "/home/xgh/local/check/lib/libcheck.so")
+  set(CHECK_INSTALL_DIR "/home/xgh/local/check")
+endif()
 find_package(Check)
 
 if(CHECK_FOUND)
-  add_subdirectory(test)
   enable_testing()
 endif()
 
@@ -57,6 +59,6 @@ include_directories(BEFORE
 
 ###############################################################################
 # Subdirectories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 add_subdirectory(src)
-add_subdirectory(test)
+add_subdirectory(example)
